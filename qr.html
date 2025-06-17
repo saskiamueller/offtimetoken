@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offtime Token QR Tracker MVP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background: #f4f8f9;
+    }
+    .log {
+      margin-top: 2rem;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      border-radius: 8px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin: 1rem;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📴 Offtime Tracker MVP</h1>
+  <p>Scanne einen QR-Code mit einem Link, der entweder <code>?start=true</code> oder <code>?end=true</code> enthält.</p>
+
+  <div class="log" id="logBox">
+    <strong>Session Log:</strong>
+    <p id="startLog">Startzeit: —</p>
+    <p id="endLog">Endzeit: —</p>
+    <p id="durationLog">Dauer: —</p>
+  </div>
+
+  <script>
+    let startTime = null;
+
+    function parseQuery() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("start")) {
+        startSession();
+      } else if (params.has("end")) {
+        endSession();
+      }
+    }
+
+    function startSession() {
+      startTime = new Date();
+      localStorage.setItem("offtimeStart", startTime.toISOString());
+      document.getElementById("startLog").textContent = "Startzeit: " + startTime.toLocaleString();
+      document.getElementById("endLog").textContent = "Endzeit: —";
+      document.getElementById("durationLog").textContent = "Dauer: —";
+    }
+
+    function endSession() {
+      const startISO = localStorage.getItem("offtimeStart");
+      if (!startISO) {
+        alert("Keine Startzeit gefunden. Bitte zuerst Start-QR scannen.");
+        return;
+      }
+      startTime = new Date(startISO);
+      const endTime = new Date();
+      document.getElementById("startLog").textContent = "Startzeit: " + startTime.toLocaleString();
+      document.getElementById("endLog").textContent = "Endzeit: " + endTime.toLocaleString();
+
+      const durationMs = endTime - startTime;
+      const minutes = Math.round(durationMs / 60000);
+      document.getElementById("durationLog").textContent =
+        "Dauer: " + minutes + " Minuten" +
+        (minutes >= 60 ? " ✅ 1 OTT verdient!" : " ❌ noch keine volle OTT-Zeit");
+
+      localStorage.removeItem("offtimeStart");
+    }
+
+    parseQuery();
+  </script>
+</body>
+</html>
