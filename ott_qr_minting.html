@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OfftimeToken QR Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <h2>OfftimeToken QR Session Tracker</h2>
+  <div id="status">Status: Warte auf Scan...</div>
+
+  <script>
+    const CONTRACT_ADDRESS = "0x8a785558A74e0343578aB9Bb507Ff6b8CF48DA9c";
+    const CONTRACT_ABI = [
+      "function mint(address to, uint256 amount) external",
+      "function validators(address) view returns (bool)"
+    ];
+
+    const MINUTES_REQUIRED = 60; // z. B. 1 Stunde für 1 OTT
+
+    function getSessionMinutes() {
+      const start = localStorage.getItem("offtime_start");
+      const end = localStorage.getItem("offtime_end");
+      if (!start || !end) return 0;
+      return Math.floor((parseInt(end) - parseInt(start)) / 60000);
+    }
+
+    async function tryMintIfEligible() {
+      const minutes = getSessionMinutes();
+      document.getElementById("status").textContent = `Offline-Zeit: ${minutes} Minuten`;
+
+      if (minutes < MINUTES_REQUIRED) return;
+
+      if (!window.ethereum) {
+        document.getElementById("status").textContent = "MetaMask nicht gefunden.";
+        return;
+      }
+
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+        const isValidator = await contract.validators(address);
+        if (!isValidator) {
+          document.getElementById("status").textContent = "Keine Berechtigung zum Minten.";
+          return;
+        }
+
+        const tx = await contract.mint(address, ethers.utils.parseUnits("1", 18));
+        await tx.wait();
+        document.getElementById("status").textContent = "✅ 1 OTT erfolgreich gemintet!";
+
+        // Reset Session
+        localStorage.removeItem("offtime_start");
+        localStorage.removeItem("offtime_end");
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "Minting fehlgeschlagen: " + err.message;
+      }
+    }
+
+    // QR-Parameter verarbeiten
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("start")) {
+      localStorage.setItem("offtime_start", Date.now().toString());
+      document.getElementById("status").textContent = "Startzeit gespeichert.";
+    }
+    if (url.searchParams.has("end")) {
+      localStorage.setItem("offtime_end", Date.now().toString());
+      tryMintIfEligible();
+    }
+  </script>
+</body>
+</html>
