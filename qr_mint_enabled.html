@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Offtime Tracker MVP</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f7fcfc; text-align: center; margin-top: 50px; }
+        .box { border: 1px solid #ccc; background: white; border-radius: 10px; padding: 20px; display: inline-block; margin-top: 30px; }
+        .logo { font-size: 2em; margin-bottom: 10px; }
+        .success { color: green; }
+        .fail { color: crimson; }
+    </style>
+</head>
+<body>
+    <div class="logo">🟧 <strong>Offtime Tracker MVP</strong></div>
+    <p>Scanne einen QR-Code mit einem Link, der entweder <code>?start=true</code> oder <code>?end=true</code> enthält.</p>
+
+    <div class="box">
+        <div><strong>Session Log:</strong></div>
+        <div id="start"></div>
+        <div id="end"></div>
+        <div id="duration"></div>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const CONTRACT_ADDRESS = "0x8a785558A74e0343578aB9Bb507Ff6b8CF48DA9c";
+        const ABI = [
+            {
+                "inputs": [
+                    { "internalType": "address", "name": "to", "type": "address" },
+                    { "internalType": "uint256", "name": "amount", "type": "uint256" }
+                ],
+                "name": "mint",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        const startDiv = document.getElementById("start");
+        const endDiv = document.getElementById("end");
+        const durationDiv = document.getElementById("duration");
+        const statusDiv = document.getElementById("status");
+
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (urlParams.get("start") === "true") {
+            localStorage.setItem("offtime_start", Date.now().toString());
+            const start = new Date().toLocaleString();
+            startDiv.textContent = "Startzeit: " + start;
+        }
+
+        if (urlParams.get("end") === "true") {
+            const startTimestamp = localStorage.getItem("offtime_start");
+            if (!startTimestamp) {
+                alert("Keine Startzeit gefunden. Bitte zuerst Start-QR scannen.");
+            } else {
+                const start = new Date(parseInt(startTimestamp));
+                const end = new Date();
+                const diffMinutes = Math.round((end - start) / 60000);
+
+                startDiv.textContent = "Startzeit: " + start.toLocaleString();
+                endDiv.textContent = "Endzeit: " + end.toLocaleString();
+                durationDiv.textContent = "Dauer: " + diffMinutes + " Minuten";
+
+                if (diffMinutes >= 60) {
+                    statusDiv.innerHTML = "✅ 1 OTT verdient – Minting läuft…";
+                    mintToken();
+                } else {
+                    statusDiv.innerHTML = "❌ noch keine volle OTT-Zeit";
+                }
+            }
+        }
+
+        async function mintToken() {
+            if (typeof window.ethereum !== "undefined") {
+                try {
+                    const web3 = new Web3(window.ethereum);
+                    await ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    const account = accounts[0];
+                    const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+                    await contract.methods.mint(account, 1).send({ from: account });
+                    statusDiv.innerHTML = "✅ 1 OTT erfolgreich gemintet und an dich gesendet.";
+                } catch (err) {
+                    console.error(err);
+                    statusDiv.innerHTML = "❌ Fehler beim Minten: " + err.message;
+                }
+            } else {
+                alert("MetaMask nicht gefunden. Bitte installiere die MetaMask-Erweiterung.");
+            }
+        }
+    </script>
+</body>
+</html>
