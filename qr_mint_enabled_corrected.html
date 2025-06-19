@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Offtime Tracker MVP</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body {font-family:sans-serif;background:#f7fcfc;text-align:center;margin-top:50px;}
+    .box {border:1px solid #ccc;background:#fff;border-radius:10px;padding:20px;display:inline-block;margin-top:30px;}
+    .logo{font-size:2em;margin-bottom:10px;}
+    button{margin-top:15px;padding:10px 20px;border:0;border-radius:6px;font-size:1rem;cursor:pointer;}
+  </style>
+</head>
+<body>
+  <div class="logo">🟧 <strong>Offtime Tracker MVP</strong></div>
+  <p>Scanne einen QR-Code mit <code>?start=true</code> oder <code>?end=true</code>.</p>
+
+  <div class="box">
+    <div><strong>Session Log:</strong></div>
+    <div id="start"></div>
+    <div id="end"></div>
+    <div id="duration"></div>
+    <div id="status"></div>
+    <button id="mintBtn" style="display:none;">Mint 1 OTT</button>
+  </div>
+
+<script>
+const CONTRACT_ADDRESS = "0xAff63202f46F4646aA46cAa8d12Cc16aC7dBf435";
+const ABI = [{
+  "inputs":[{"internalType":"address","name":"to","type":"address"},
+            {"internalType":"uint256","name":"amount","type":"uint256"}],
+  "name":"mint","outputs":[],"stateMutability":"nonpayable","type":"function"
+}];
+
+const startDiv    = document.getElementById("start");
+const endDiv      = document.getElementById("end");
+const durationDiv = document.getElementById("duration");
+const statusDiv   = document.getElementById("status");
+const mintBtn     = document.getElementById("mintBtn");
+
+const urlParams = new URLSearchParams(window.location.search);
+
+if (urlParams.get("start") === "true") {
+  localStorage.setItem("offtime_start", Date.now().toString());
+  startDiv.textContent = "Startzeit: " + new Date().toLocaleString();
+}
+
+if (urlParams.get("end") === "true") {
+  const startTS = localStorage.getItem("offtime_start");
+  if (!startTS) { alert("Keine Startzeit gefunden – zuerst ?start=true scannen."); }
+  else {
+    const start = new Date(Number(startTS));
+    const end   = new Date();
+    const diffM = Math.round((end - start) / 60000);
+
+    startDiv.textContent    = "Startzeit: " + start.toLocaleString();
+    endDiv.textContent      = "Endzeit: "   + end.toLocaleString();
+    durationDiv.textContent = "Dauer: "     + diffM + " Minuten";
+
+    if (diffM >= 60) {
+      statusDiv.innerHTML = "✅ 1 OTT verdient – bereit zum Minten.";
+      mintBtn.style.display = "inline-block";
+    } else {
+      statusDiv.innerHTML = "❌ Noch keine volle Stunde erreicht.";
+    }
+  }
+}
+
+mintBtn.addEventListener("click", async () => {
+  if (!window.ethereum) { return alert("MetaMask nicht gefunden."); }
+
+  try {
+    const web3 = new Web3(window.ethereum);
+    await ethereum.request({ method: "eth_requestAccounts" });
+    const [account] = await web3.eth.getAccounts();
+    const contract  = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+    statusDiv.textContent = "⏳ Transaktion wird gesendet…";
+    await contract.methods.mint(account, web3.utils.toWei("1", "ether")).send({ from: account });
+    statusDiv.innerHTML = "🎉 1 OTT erfolgreich gemintet!";
+    mintBtn.disabled = true;
+  } catch (err) {
+    console.error(err);
+    statusDiv.innerHTML = "❌ Fehler beim Minten: " + err.message;
+  }
+});
+</script>
+</body>
+</html>
