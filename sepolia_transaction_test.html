@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Sepolia Test-Transaktion</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f4fbf9; text-align: center; margin-top: 60px; }
+    .box { background: white; border: 1px solid #ccc; border-radius: 12px; padding: 30px; display: inline-block; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🧪 Sepolia Test-Transaktion</h2>
+    <p>Mit diesem Button wird eine kleine Menge ETH an dich selbst geschickt.</p>
+    <button onclick="sendTransaction()">Jetzt testen</button>
+    <div id="output" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    async function sendTransaction() {
+      const output = document.getElementById("output");
+
+      if (typeof window.ethereum === "undefined") {
+        return alert("MetaMask wird benötigt.");
+      }
+
+      try {
+        const web3 = new Web3(window.ethereum);
+        await ethereum.request({ method: "eth_requestAccounts" });
+        const [account] = await web3.eth.getAccounts();
+
+        output.innerHTML = "⏳ Sende Transaktion…";
+
+        const tx = {
+          from: account,
+          to: account,
+          value: web3.utils.toWei("0.00001", "ether"),
+          gas: 21000
+        };
+
+        const txHash = await web3.eth.sendTransaction(tx);
+        output.innerHTML = "✅ Erfolg! Transaktion gesendet.";
+        console.log(txHash);
+      } catch (err) {
+        console.error(err);
+        output.innerHTML = "❌ Fehler: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
