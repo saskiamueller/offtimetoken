@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offtime Token App</title>
+  <link rel="icon" href="/favicon.ico" />
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f2fcf7;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+    header {
+      margin-top: 30px;
+      text-align: center;
+    }
+    header img {
+      width: 120px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5em;
+    }
+    .tracker-box, .ico-box {
+      margin-top: 30px;
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      max-width: 340px;
+      width: 90%;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      margin-top: 20px;
+      border: none;
+      background: #26a269;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #218f5a;
+    }
+    .log, .status, #ico-status {
+      margin-top: 18px;
+      font-size: 0.95em;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="OTT Logo" />
+    <h1>Offtime Token</h1>
+    <p>OFF is the new gold.</p>
+  </header>
+
+  <div class="tracker-box">
+    <div class="log" id="log">⏱ Tracking bereit.</div>
+    <div class="status" id="status"></div>
+    <button onclick="startSession()">Start Tracking</button>
+    <button onclick="endSession()">End & Mint</button>
+  </div>
+
+  <div class="ico-box">
+    <h2>🎟️ OTT kaufen</h2>
+    <p>1 OTT kostet <strong>0.001 ETH</strong></p>
+    <button onclick="buyTokens()">Jetzt kaufen</button>
+    <div id="ico-status"></div>
+  </div>
+
+  <script>
+    const CONTRACT_ADDRESS = "0x4b9FC75f9b7B7923cFf251602268DE0048D46617";
+    const ICO_ADDRESS = "0x5528c5e91d10494e555362c91af2064315655288";
+
+    const ABI = [{
+      "inputs": [
+        { "internalType": "address", "name": "to", "type": "address" },
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "mint",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }];
+
+    const ICO_ABI = [{
+      "inputs": [],
+      "name": "buyTokens",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    }];
+
+    function format(dt) {
+      return new Date(dt).toLocaleString();
+    }
+
+    function startSession() {
+      localStorage.setItem("ott_start", Date.now().toString());
+      document.getElementById("log").textContent = "🔋 Tracking gestartet: " + format(Date.now());
+      document.getElementById("status").textContent = "";
+    }
+
+    async function endSession() {
+      const start = localStorage.getItem("ott_start");
+      if (!start) return alert("❌ Kein Startzeitpunkt gefunden.");
+
+      const end = Date.now();
+      const minutes = Math.floor((end - start) / 60000);
+      const ott = Math.floor(minutes / 60);
+
+      document.getElementById("log").innerHTML =
+        `📥 Start: ${format(parseInt(start))}<br>📤 Ende: ${format(end)}<br>⏳ Dauer: ${minutes} Minuten`;
+
+      if (ott < 1) {
+        document.getElementById("status").textContent = "⛔ Weniger als eine Stunde.";
+        return;
+      }
+
+      if (!window.ethereum || !window.ethereum.isMetaMask) {
+        alert("MetaMask nicht gefunden oder nicht korrekt eingebunden.");
+        return;
+      }
+
+      try {
+        const provider = window.ethereum;
+        const web3 = new Web3(provider);
+        await provider.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        const account = accounts[0];
+        const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+        document.getElementById("status").textContent = `⏳ Minting ${ott} OTT…`;
+        await contract.methods.mint(account, ott).send({ from: account });
+
+        document.getElementById("status").textContent = `✅ ${ott} OTT erfolgreich gemintet!`;
+      } catch (err) {
+        console.error("Minting error:", err);
+        document.getElementById("status").textContent = `❌ Fehler: ${err.message}`;
+      }
+    }
+
+    async function buyTokens() {
+      if (!window.ethereum) return alert("MetaMask benötigt");
+      const web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+      const contract = new web3.eth.Contract(ICO_ABI, ICO_ADDRESS);
+      try {
+        const tx = await contract.methods.buyTokens().send({
+          from: account,
+          value: web3.utils.toWei("0.001", "ether"),
+        });
+        document.getElementById("ico-status").textContent = `✅ Gekauft! TX: ${tx.transactionHash}`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("ico-status").textContent = `❌ Fehler: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
