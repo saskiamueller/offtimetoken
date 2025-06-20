@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>OTT Multi-Mint Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f2fdfb; text-align: center; margin-top: 60px; }
+    .box { background: white; border: 1px solid #ccc; border-radius: 14px; padding: 30px; display: inline-block; min-width: 300px; }
+    button { padding: 12px 24px; font-size: 16px; margin-top: 25px; }
+    .status { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🍊 OTT Tracker (Mehrfach-Mint)</h2>
+    <p>Ein OTT wird für jede volle Stunde Offline-Zeit gemintet.</p>
+    <div id="log"></div>
+    <div class="status" id="status"></div>
+    <button onclick="mintIfEligible()">Mint OTT</button>
+  </div>
+
+  <script>
+    const CONTRACT_ADDRESS = "0x4b9FC75f9b7B7923cFf251602268DE0048D46617";
+    const ABI = [{
+      "inputs": [
+        { "internalType": "address", "name": "to", "type": "address" },
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "mint",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }];
+
+    function format(dt) {
+      return new Date(dt).toLocaleString();
+    }
+
+    async function mintIfEligible() {
+      const status = document.getElementById("status");
+      const log = document.getElementById("log");
+
+      const start = localStorage.getItem("offtime_start");
+      if (!start) return alert("❌ Keine Startzeit gefunden.");
+
+      const end = Date.now();
+      const diffMin = Math.floor((end - start) / 60000);
+      const ottAmount = Math.floor(diffMin / 60);
+
+      log.innerHTML = `🕓 Startzeit: ${format(parseInt(start))}<br>⏱ Endzeit: ${format(end)}<br>⏳ Dauer: ${diffMin} Minuten`;
+
+      if (ottAmount < 1) {
+        status.textContent = "⛔ Weniger als 60 Minuten. Kein OTT.";
+        return;
+      }
+
+      if (typeof window.ethereum === "undefined") {
+        alert("MetaMask nicht gefunden.");
+        return;
+      }
+
+      try {
+        status.textContent = `⏳ Minting von ${ottAmount} OTT wird vorbereitet…`;
+        const web3 = new Web3(window.ethereum);
+        await ethereum.request({ method: "eth_requestAccounts" });
+        const accounts = await web3.eth.getAccounts();
+        const account = accounts[0];
+        const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+        await contract.methods.mint(account, ottAmount).send({ from: account });
+
+        status.textContent = `✅ ${ottAmount} OTT erfolgreich gemintet!`;
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Fehler: " + err.message;
+      }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("start") === "true") {
+      localStorage.setItem("offtime_start", Date.now().toString());
+      document.getElementById("status").textContent = "🟢 Tracking gestartet.";
+    }
+    if (urlParams.get("end") === "true") {
+      mintIfEligible();
+    }
+  </script>
+</body>
+</html>
