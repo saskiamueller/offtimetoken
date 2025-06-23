@@ -61,6 +61,59 @@
     }
   </style>
 </head>
+<!-- Mint OTT Token Button -->
+<h2>🪙 Offtime Token verdienen</h2>
+<button id="mintBtn">🪙 OTT minten</button>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+<script>
+  const contractAddress = "0x6c67658dc70687746d6e3afc9975e23933d9d8a2";
+  const contractABI = [
+    {
+      "inputs": [
+        { "internalType": "address", "name": "to", "type": "address" },
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "mint",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ];
+
+  let web3;
+  let accounts;
+  let contract;
+
+  window.addEventListener("load", async () => {
+    if (window.ethereum) {
+      web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      accounts = await web3.eth.getAccounts();
+      contract = new web3.eth.Contract(contractABI, contractAddress);
+    } else {
+      alert("Bitte MetaMask installieren.");
+    }
+  });
+
+  document.getElementById("mintBtn").onclick = async () => {
+    if (!contract || !accounts) {
+      alert("Bitte Wallet verbinden");
+      return;
+    }
+
+    try {
+      const tx = await contract.methods
+        .mint(accounts[0], web3.utils.toWei("1", "ether")) // 1 OTT mit 18 Decimals
+        .send({ from: accounts[0] });
+
+      alert("🎉 OTT erfolgreich gemintet! TX: " + tx.transactionHash);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Minting fehlgeschlagen. Bist du Validator?");
+    }
+  };
+</script>
 <body>
   <header>
     <img src="logo.png" alt="OTT Logo" />
