@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Offtime Validator Tool</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+</head>
+<body>
+  <h2>👛 Verbinde deine Wallet</h2>
+  <button id="connectBtn">🔗 MetaMask verbinden</button>
+
+  <h2>✅ Dich selbst als Validator hinzufügen</h2>
+  <button id="addValidatorBtn">🛠️ Als Validator eintragen</button>
+
+  <script>
+    const contractAddress = "0x6c67658dc70687746d6e3afc9975e23933d9d8a2"; // OTT Contract
+    const contractABI = [
+      {
+        "inputs": [{"internalType":"address","name":"validator","type":"address"}],
+        "name": "addValidator",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+
+    let web3;
+    let accounts;
+    let contract;
+
+    document.getElementById("connectBtn").onclick = async () => {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        accounts = await web3.eth.getAccounts();
+        contract = new web3.eth.Contract(contractABI, contractAddress);
+        alert("Wallet verbunden: " + accounts[0]);
+      } else {
+        alert("Bitte installiere MetaMask");
+      }
+    };
+
+    document.getElementById("addValidatorBtn").onclick = async () => {
+      if (!contract || !accounts) {
+        alert("Bitte zuerst Wallet verbinden");
+        return;
+      }
+
+      try {
+        const tx = await contract.methods.addValidator(accounts[0]).send({ from: accounts[0] });
+        alert("🎉 Du bist jetzt Validator! TX: " + tx.transactionHash);
+      } catch (err) {
+        console.error(err);
+        alert("❌ Fehler beim Eintragen. Details in der Konsole.");
+      }
+    };
+  </script>
+</body>
+</html>
