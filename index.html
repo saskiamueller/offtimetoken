@@ -55,25 +55,31 @@
         const web3 = new Web3(window.ethereum);
         await ethereum.request({ method: 'eth_requestAccounts' });
 
-        const contractAddress = '0x6462c9dfaa1b36d526d5a00f6ea7dec6b11b3087'; // OfftimeToken-Adresse
-        const contractABI = [ 
-          { 
-            "inputs": [], 
-            "name": "mint", 
-            "outputs": [], 
-            "stateMutability": "nonpayable", 
-            "type": "function" 
-          } 
+        const contractAddress = '0x6462c9dfaa1b36d526d5a00f6ea7dec6b11b3087';
+        const contractABI = [
+          {
+            "inputs": [
+              { "internalType": "address", "name": "to", "type": "address" },
+              { "internalType": "uint256", "name": "amount", "type": "uint256" }
+            ],
+            "name": "mint",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
         ];
+
         const accounts = await web3.eth.getAccounts();
         const contract = new web3.eth.Contract(contractABI, contractAddress);
+        const amount = web3.utils.toWei("1", "ether");
 
         try {
-          await contract.methods.mint().send({ from: accounts[0] });
-          alert("1 OTT erfolgreich gemintet!");
+          console.log("Minting 1 OTT to", accounts[0]);
+          await contract.methods.mint(accounts[0], amount).send({ from: accounts[0] });
+          alert("✅ 1 OTT erfolgreich gemintet!");
         } catch (error) {
           console.error(error);
-          alert("Minting fehlgeschlagen.");
+          alert("❌ Minting fehlgeschlagen: " + error.message);
         }
       } else {
         alert("Bitte installiere MetaMask.");
@@ -82,3 +88,4 @@
   </script>
 </body>
 </html>
+
