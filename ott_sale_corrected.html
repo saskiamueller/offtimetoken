@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Offtime Token Verkauf</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #eefff6;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      margin-top: 80px;
+      background: white;
+      display: inline-block;
+      padding: 40px 50px;
+      border-radius: 18px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+    button {
+      padding: 12px 26px;
+      font-size: 16px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #218838;
+    }
+    .status {
+      margin-top: 20px;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🎟️ Kaufe Offtime Token<br>(OTT)</h2>
+    <p>1 OTT kostet <strong>0.001 ETH</strong></p>
+    <button onclick="buyTokens()">Jetzt kaufen</button>
+    <div class="status" id="ico-status"></div>
+  </div>
+
+  <script>
+    const ICO_ADDRESS = "0x4b9FC75f9b7B7923cFf251602268DE0048D46617";
+    const ICO_ABI = [{
+      "inputs": [],
+      "name": "buyTokens",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    }];
+
+    async function buyTokens() {
+      if (!window.ethereum) return alert("Bitte MetaMask installieren.");
+      const web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+      const contract = new web3.eth.Contract(ICO_ABI, ICO_ADDRESS);
+      try {
+        const tx = await contract.methods.buyTokens().send({
+          from: account,
+          value: web3.utils.toWei("0.001", "ether"),
+        });
+        document.getElementById("ico-status").textContent = `✅ Gekauft! TX: ${tx.transactionHash}`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("ico-status").textContent = `❌ Fehler: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
