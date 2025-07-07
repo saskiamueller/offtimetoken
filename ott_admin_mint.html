@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>OTT Admin Mint</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0fef6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .admin-box {
+      background: white;
+      padding: 40px 50px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      width: 80%;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      padding: 12px 26px;
+      font-size: 16px;
+      background: #26a269;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #218f5a;
+    }
+    .status {
+      margin-top: 20px;
+      font-size: 0.95em;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-box">
+    <h2>👩‍💻 Admin: OTT Massenmint</h2>
+    <input type="number" id="mintAmount" placeholder="Anzahl OTT z. B. 1000000" />
+    <br />
+    <button onclick="mintTokens()">Jetzt minten</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const CONTRACT_ADDRESS = "0x4b9FC75f9b7B7923cFf251602268DE0048D46617"; // Token-Vertragsadresse
+    const ABI = [
+      {
+        "inputs": [
+          { "internalType": "address", "name": "to", "type": "address" },
+          { "internalType": "uint256", "name": "amount", "type": "uint256" }
+        ],
+        "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+
+    async function mintTokens() {
+      const amountInput = document.getElementById("mintAmount").value;
+      const status = document.getElementById("status");
+
+      if (!amountInput || isNaN(amountInput) || Number(amountInput) <= 0) {
+        return alert("❗ Bitte gültige Tokenanzahl eingeben.");
+      }
+
+      if (!window.ethereum) return alert("MetaMask benötigt.");
+      const web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+
+      const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+      try {
+        status.textContent = `⏳ Minting ${amountInput} OTT…`;
+        const amountBN = web3.utils.toBN(amountInput);
+        await contract.methods.mint(account, amountBN).send({ from: account });
+        status.textContent = `✅ ${amountInput} OTT erfolgreich gemintet!`;
+      } catch (err) {
+        console.error(err);
+        status.textContent = `❌ Fehler: ${err.message}`;
+      }
+    }
+  </script>
+
+</body>
+</html>
