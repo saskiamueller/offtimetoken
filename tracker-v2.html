@@ -34,8 +34,9 @@
       width: 90%;
       box-sizing: border-box;
       margin-bottom: 40px;
+      text-align: center;
     }
-    .status, .countdown {
+    .status, .countdown, .ott-counter {
       margin-top: 20px;
       font-size: 1em;
       color: #333;
@@ -59,6 +60,19 @@
       transform: scale(1.03);
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
+    .progress-circle {
+      margin: 20px auto;
+      width: 120px;
+      height: 120px;
+      background: conic-gradient(#26a269 var(--percent, 0%), #e0e0e0 0%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #222;
+    }
   </style>
 </head>
 <body>
@@ -68,8 +82,10 @@
   <div class="container">
     <button onclick="startTimer()">Start Offtime</button>
     <button onclick="stopTimer()">End Offtime</button>
+    <div class="progress-circle" id="progressCircle">0%</div>
     <div class="status" id="status">Timer nicht gestartet</div>
     <div class="countdown" id="countdown"></div>
+    <div class="ott-counter" id="ottCounter">🧮 Du hast 0 OTT gesammelt</div>
     <button id="mintButton" onclick="mintToken()" disabled>🪙 Mint 1 OTT</button>
     <button onclick="addMyselfAsValidator()">🛠 Mich als Validator eintragen</button>
   </div>
@@ -78,6 +94,8 @@
     let startTime;
     let interval;
     const requiredTime = 60 * 60 * 1000; // 1 Stunde in ms
+    let ottCount = parseInt(localStorage.getItem("ott_count")) || 0;
+    document.getElementById("ottCounter").innerText = `🧮 Du hast ${ottCount} OTT gesammelt`;
 
     function startTimer() {
       startTime = Date.now();
@@ -101,6 +119,11 @@
     function updateCountdown() {
       const elapsed = Date.now() - startTime;
       const remaining = requiredTime - elapsed;
+      const percent = Math.min(100, Math.floor((elapsed / requiredTime) * 100));
+
+      document.getElementById("progressCircle").style.setProperty('--percent', percent + '%');
+      document.getElementById("progressCircle").textContent = `${percent}%`;
+
       if (remaining > 0) {
         const mins = Math.floor(remaining / 60000);
         const secs = Math.floor((remaining % 60000) / 1000);
@@ -136,6 +159,9 @@
         try {
           console.log("Minting 1 OTT to", accounts[0]);
           await contract.methods.mint(accounts[0], amount).send({ from: accounts[0] });
+          ottCount += 1;
+          localStorage.setItem("ott_count", ottCount);
+          document.getElementById("ottCounter").innerText = `🧮 Du hast ${ottCount} OTT gesammelt`;
           alert("✅ 1 OTT erfolgreich gemintet!");
         } catch (error) {
           console.error(error);
@@ -177,3 +203,4 @@
   </script>
 </body>
 </html>
+
