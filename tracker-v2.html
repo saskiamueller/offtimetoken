@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Offtime Token Tracker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      background-color: #f2fcf7;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 40px 20px 20px;
+    }
+    header h1 {
+      font-size: 2em;
+      color: #222;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      max-width: 400px;
+      width: 90%;
+      box-sizing: border-box;
+      margin-bottom: 40px;
+    }
+    .status, .countdown {
+      margin-top: 20px;
+      font-size: 1em;
+      color: #333;
+    }
+    button {
+      padding: 12px 24px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 10px;
+      background-color: #26a269;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      transform: scale(1.03);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Offtime Token Tracker</h1>
+  </header>
+  <div class="container">
+    <button onclick="startTimer()">Start Offtime</button>
+    <button onclick="stopTimer()">End Offtime</button>
+    <div class="status" id="status">Timer nicht gestartet</div>
+    <div class="countdown" id="countdown"></div>
+    <button id="mintButton" onclick="mintToken()" disabled>🪙 Mint 1 OTT</button>
+    <button onclick="addMyselfAsValidator()">🛠 Mich als Validator eintragen</button>
+  </div>
+
+  <script>
+    let startTime;
+    let interval;
+    const requiredTime = 60 * 60 * 1000; // 1 Stunde in ms
+
+    function startTimer() {
+      startTime = Date.now();
+      document.getElementById("status").innerText = "Offtime gestartet";
+      interval = setInterval(updateCountdown, 1000);
+      document.getElementById("mintButton").disabled = true;
+    }
+
+    function stopTimer() {
+      clearInterval(interval);
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= requiredTime) {
+        document.getElementById("status").innerText = "✅ 1 Stunde erreicht. Du kannst nun minten.";
+        document.getElementById("mintButton").disabled = false;
+      } else {
+        const remaining = Math.ceil((requiredTime - elapsed) / 60000);
+        document.getElementById("status").innerText = `⏳ Noch ${remaining} Minuten erforderlich.`;
+      }
+    }
+
+    function updateCountdown() {
+      const elapsed = Date.now() - startTime;
+      const remaining = requiredTime - elapsed;
+      if (remaining > 0) {
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        document.getElementById("countdown").innerText = `Noch ${mins}m ${secs}s bis zum Minten.`;
+      } else {
+        document.getElementById("countdown").innerText = "⏱ 1 Stunde erreicht!";
+      }
+    }
+
+    async function mintToken() {
+      if (typeof window.ethereum !== 'undefined') {
+        const web3 = new Web3(window.ethereum);
+        await ethereum.request({ method: 'eth_requestAccounts' });
+
+        const contractAddress = '0x6462c9dfaa1b36d526d5a00f6ea7dec6b11b3087';
+        const contractABI = [
+          {
+            "inputs": [
+              { "internalType": "address", "name": "to", "type": "address" },
+              { "internalType": "uint256", "name": "amount", "type": "uint256" }
+            ],
+            "name": "mint",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ];
+
+        const accounts = await web3.eth.getAccounts();
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+        const amount = web3.utils.toWei("1", "ether");
+
+        try {
+          console.log("Minting 1 OTT to", accounts[0]);
+          await contract.methods.mint(accounts[0], amount).send({ from: accounts[0] });
+          alert("✅ 1 OTT erfolgreich gemintet!");
+        } catch (error) {
+          console.error(error);
+          alert("❌ Minting fehlgeschlagen: " + error.message);
+        }
+      } else {
+        alert("Bitte installiere MetaMask.");
+      }
+    }
+
+    async function addMyselfAsValidator() {
+      if (typeof window.ethereum !== 'undefined') {
+        const web3 = new Web3(window.ethereum);
+        await ethereum.request({ method: 'eth_requestAccounts' });
+
+        const contractAddress = '0x6462c9dfaa1b36d526d5a00f6ea7dec6b11b3087';
+        const abi = [{
+          "inputs": [{ "internalType": "address", "name": "validator", "type": "address" }],
+          "name": "addValidator",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }];
+
+        const accounts = await web3.eth.getAccounts();
+        const contract = new web3.eth.Contract(abi, contractAddress);
+
+        try {
+          await contract.methods.addValidator(accounts[0]).send({ from: accounts[0] });
+          alert("✅ Du bist jetzt Validator!");
+        } catch (error) {
+          console.error(error);
+          alert("❌ Fehler beim Hinzufügen als Validator: " + error.message);
+        }
+      } else {
+        alert("Bitte installiere MetaMask.");
+      }
+    }
+  </script>
+</body>
+</html>
