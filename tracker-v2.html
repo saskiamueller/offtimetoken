@@ -159,6 +159,10 @@
         try {
           console.log("Minting 1 OTT to", accounts[0]);
           await contract.methods.mint(accounts[0], amount).send({ from: accounts[0] });
+          // Unsichtbare Historie im Hintergrund speichern
+          let history = JSON.parse(localStorage.getItem("ott_history")) || [];
+          history.push({ time: Date.now(), tokens: 1 });
+          localStorage.setItem("ott_history", JSON.stringify(history));
           ottCount += 1;
           localStorage.setItem("ott_count", ottCount);
           document.getElementById("ottCounter").innerText = `🧮 Du hast ${ottCount} OTT gesammelt`;
@@ -203,4 +207,5 @@
   </script>
 </body>
 </html>
+
 
